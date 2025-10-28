@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Zeitrechner</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main class="page">
+      <section class="card">
+        <header class="card__header">
+          <h1>Zeitrechner</h1>
+          <p>Berechne deine Arbeitszeit ganz ohne Aufwand – alles bleibt im Browser.</p>
+        </header>
+
+        <form class="form" id="time-form">
+          <div class="form__group">
+            <label for="start-time">Startzeit</label>
+            <input type="time" id="start-time" required />
+          </div>
+
+          <div class="form__group">
+            <label for="break-duration">Pause</label>
+            <select id="break-duration">
+              <option value="00:30">30 Minuten</option>
+              <option value="00:45">45 Minuten</option>
+            </select>
+          </div>
+
+          <div class="form__group">
+            <label for="target-duration">Sollzeit</label>
+            <select id="target-duration">
+              <option value="07:48">7 Stunden 48 Minuten</option>
+              <option value="08:00">8 Stunden</option>
+            </select>
+          </div>
+        </form>
+
+        <section class="results" aria-live="polite">
+          <article class="result">
+            <h2>Wenn du jetzt gehst</h2>
+            <p class="result__time" id="current-worked">–</p>
+            <p class="result__note">Bisherige Arbeitszeit (abzüglich Pause)</p>
+          </article>
+          <article class="result">
+            <h2>Feierabend bei Sollzeit</h2>
+            <p class="result__time" id="target-end">–</p>
+            <p class="result__note">Gehe zu dieser Uhrzeit, um deine Sollzeit zu erfüllen</p>
+          </article>
+          <article class="result">
+            <h2>Spätester Feierabend (10h-Regel)</h2>
+            <p class="result__time" id="max-end">–</p>
+            <p class="result__note">Absolute Grenze einschließlich Pause</p>
+          </article>
+        </section>
+      </section>
+    </main>
+
+    <script src="script.js"></script>
+  </body>
+</html>
