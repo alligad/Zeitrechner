@@ -1,7 +1,10 @@
 const STORAGE_KEYS = {
   start: "zeitrechner:startTime",
   pause: "zeitrechner:breakDuration",
+  pauseCustom: "zeitrechner:breakDurationCustom",
   target: "zeitrechner:targetDuration",
+  targetCustom: "zeitrechner:targetDurationCustom",
+  mode: "zeitrechner:mode",
   weekly: "zeitrechner:weeklyEntries",
 };
 
@@ -20,8 +23,11 @@ const BUTTON_LABELS = {
 
 const form = document.getElementById("time-form");
 const startInput = document.getElementById("start-time");
+const customToggleButton = document.getElementById("custom-toggle");
 const breakSelect = document.getElementById("break-duration");
 const targetSelect = document.getElementById("target-duration");
+const breakCustomInput = document.getElementById("break-duration-custom");
+const targetCustomInput = document.getElementById("target-duration-custom");
 const workedOutput = document.getElementById("current-worked");
 const targetOutput = document.getElementById("target-end");
 const maxOutput = document.getElementById("max-end");
@@ -48,6 +54,7 @@ const timelineTargetTime = document.getElementById("timeline-target-time");
 const timelineMaxTime = document.getElementById("timeline-max-time");
 
 const state = {
+  customMode: false,
   valid: false,
   startMinutes: null,
   breakMinutes: null,
@@ -63,14 +70,16 @@ let tickInterval;
 document.addEventListener("DOMContentLoaded", init);
 
 function init() {
-  loadStoredValues();
+  const storedMode = loadStoredValues();
   attachEventListeners();
+  setCustomMode(storedMode === "custom", { silent: true });
   handleInputs();
   startAutoTick();
 }
 
 function attachEventListeners() {
   form.addEventListener("input", handleInputs);
+  customToggleButton?.addEventListener("click", toggleCustomMode);
   startNowButton?.addEventListener("click", setStartToNow);
   saveSessionButton?.addEventListener("click", saveTodaySession);
   clearWeekButton?.addEventListener("click", clearCurrentWeek);
@@ -88,14 +97,77 @@ function setStartToNow() {
   handleInputs();
 }
 
+function toggleCustomMode() {
+  setCustomMode(!state.customMode);
+}
+
+function setCustomMode(enabled, options = {}) {
+  const changed = state.customMode !== enabled;
+  state.customMode = enabled;
+  applyCustomModeUI(enabled);
+
+  if (changed && !options.silent) {
+    handleInputs();
+  }
+}
+
+function applyCustomModeUI(enabled) {
+  if (customToggleButton) {
+    customToggleButton.classList.toggle("is-active", enabled);
+    customToggleButton.textContent = enabled ? "Voreinstellungen" : "Benutzerdefiniert";
+    customToggleButton.setAttribute("aria-pressed", String(enabled));
+  }
+
+  if (breakCustomInput && breakSelect) {
+    if (enabled && !breakCustomInput.value) {
+      breakCustomInput.value = breakSelect.value || "00:30";
+    }
+    breakCustomInput.hidden = !enabled;
+    breakCustomInput.required = enabled;
+    breakSelect.hidden = enabled;
+  }
+
+  if (targetCustomInput && targetSelect) {
+    if (enabled && !targetCustomInput.value) {
+      targetCustomInput.value = targetSelect.value || "07:48";
+    }
+    targetCustomInput.hidden = !enabled;
+    targetCustomInput.required = enabled;
+    targetSelect.hidden = enabled;
+  }
+}
+
+function getBreakValue() {
+  if (state.customMode && breakCustomInput) {
+    return breakCustomInput.value || null;
+  }
+
+  return breakSelect.value || null;
+}
+
+function getTargetValue() {
+  if (state.customMode && targetCustomInput) {
+    return targetCustomInput.value || null;
+  }
+
+  return targetSelect.value || null;
+}
+
 function loadStoredValues() {
   const storedStart = localStorage.getItem(STORAGE_KEYS.start);
   const storedPause = localStorage.getItem(STORAGE_KEYS.pause);
+  const storedPauseCustom = localStorage.getItem(STORAGE_KEYS.pauseCustom);
   const storedTarget = localStorage.getItem(STORAGE_KEYS.target);
+  const storedTargetCustom = localStorage.getItem(STORAGE_KEYS.targetCustom);
+  const storedMode = localStorage.getItem(STORAGE_KEYS.mode);
 
   if (storedStart) startInput.value = storedStart;
   if (storedPause) breakSelect.value = storedPause;
   if (storedTarget) targetSelect.value = storedTarget;
+  if (storedPauseCustom && breakCustomInput) breakCustomInput.value = storedPauseCustom;
+  if (storedTargetCustom && targetCustomInput) targetCustomInput.value = storedTargetCustom;
+
+  return storedMode;
 }
 
 function storeValues() {
@@ -103,14 +175,40 @@ function storeValues() {
     localStorage.setItem(STORAGE_KEYS.start, startInput.value);
   }
 
-  localStorage.setItem(STORAGE_KEYS.pause, breakSelect.value);
-  localStorage.setItem(STORAGE_KEYS.target, targetSelect.value);
+  if (breakSelect.value) {
+    localStorage.setItem(STORAGE_KEYS.pause, breakSelect.value);
+  }
+
+  if (targetSelect.value) {
+    localStorage.setItem(STORAGE_KEYS.target, targetSelect.value);
+  }
+
+  if (breakCustomInput) {
+    localStorage.setItem(
+      STORAGE_KEYS.pauseCustom,
+      breakCustomInput.value ?? ""
+    );
+  }
+
+  if (targetCustomInput) {
+    localStorage.setItem(
+      STORAGE_KEYS.targetCustom,
+      targetCustomInput.value ?? ""
+    );
+  }
+
+  localStorage.setItem(
+    STORAGE_KEYS.mode,
+    state.customMode ? "custom" : "preset"
+  );
 }
 
 function updateCalculations() {
   const start = parseTimeString(startInput.value);
-  const breakDuration = parseTimeString(breakSelect.value);
-  const targetDuration = parseTimeString(targetSelect.value);
+  const breakValue = getBreakValue();
+  const targetValue = getTargetValue();
+  const breakDuration = parseTimeString(breakValue);
+  const targetDuration = parseTimeString(targetValue);
 
   if (!start || !breakDuration || !targetDuration) {
     resetOutputs();
@@ -265,8 +363,29 @@ function clearCurrentWeek() {
 }
 
 function handleStorageSync(event) {
+  if (!event) return;
+
   if (event.key === STORAGE_KEYS.weekly) {
     renderWeek();
+    return;
+  }
+
+  if (event.key === STORAGE_KEYS.mode) {
+    setCustomMode(event.newValue === "custom", { silent: true });
+    updateCalculations();
+    return;
+  }
+
+  if (
+    event.key === STORAGE_KEYS.start ||
+    event.key === STORAGE_KEYS.pause ||
+    event.key === STORAGE_KEYS.pauseCustom ||
+    event.key === STORAGE_KEYS.target ||
+    event.key === STORAGE_KEYS.targetCustom
+  ) {
+    const storedMode = loadStoredValues();
+    setCustomMode(storedMode === "custom", { silent: true });
+    updateCalculations();
   }
 }
 

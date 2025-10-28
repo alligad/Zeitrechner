@@ -15,6 +15,12 @@
         </header>
 
         <form class="form" id="time-form">
+          <div class="form__actions">
+            <span class="form__actions-label">Zeiteingaben</span>
+            <button type="button" class="button button--ghost" id="custom-toggle">
+              Benutzerdefiniert
+            </button>
+          </div>
           <div class="form__group">
             <div class="form__label-row">
               <label for="start-time">Startzeit</label>
@@ -29,6 +35,13 @@
               <option value="00:30">30 Minuten</option>
               <option value="00:45">45 Minuten</option>
             </select>
+            <input
+              type="time"
+              id="break-duration-custom"
+              class="form__control form__control--custom"
+              step="60"
+              hidden
+            />
           </div>
 
           <div class="form__group">
@@ -37,6 +50,13 @@
               <option value="07:48">7 Stunden 48 Minuten</option>
               <option value="08:00">8 Stunden</option>
             </select>
+            <input
+              type="time"
+              id="target-duration-custom"
+              class="form__control form__control--custom"
+              step="60"
+              hidden
+            />
           </div>
         </form>
 
